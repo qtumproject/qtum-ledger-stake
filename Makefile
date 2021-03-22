@@ -33,7 +33,7 @@ APP_LOAD_FLAGS=--appFlags 0xa50 --dep Bitcoin:$(APPVERSION)
 
 # simplify for tests
 ifndef COIN
-COIN=bitcoin
+COIN=qtum_stake
 endif
 
 ifeq ($(COIN),bitcoin_testnet)
@@ -145,6 +145,22 @@ APPNAME ="Qtum Test"
 DEFINES_LIB=# we're not using the lib :)
 APP_LOAD_PARAMS += --path $(APP_PATH) --path "44'/1'" --path "45'/1'" --path "48'/1'" --path "49'/1'" --path "84'/1'" --path "0'/45342'" --path "20698'/3053'/12648430'" 
 APP_LOAD_FLAGS=--appFlags 0xa50
+else ifeq ($(COIN),qtum_stake)
+# Qtum Stake
+# Qtum Stake can run significantly different code paths, thus is locked by the OS
+# using APP_LOAD_PARAMS instead of BIP44_COIN_TYPE
+DEFINES   += BIP44_COIN_TYPE=0 BIP44_COIN_TYPE_2=0 COIN_P2PKH_VERSION=58 COIN_P2SH_VERSION=50 COIN_FAMILY=3 COIN_COINID=\"Qtum\" COIN_COINID_HEADER=\"QTUM\" COIN_COLOR_HDR=0x2E9AD0 COIN_COLOR_DB=0x97CDE8 COIN_COINID_NAME=\"QTUM\" COIN_COINID_SHORT=\"QTUM\" COIN_NATIVE_SEGWIT_PREFIX=\"qc\" COIN_KIND=COIN_KIND_QTUM COIN_FLAGS=FLAG_SEGWIT_CHANGE_SUPPORT MAX_OUTPUT_TO_CHECK=500 HAVE_QTUM_SUPPORT USE_NO_OVERWINTER
+APPNAME ="Qtum Stake"
+DEFINES_LIB=# we're not using the lib :)
+APP_LOAD_PARAMS += --path $(APP_PATH) --path "44'/88'" --path "45'/88'" --path "48'/88'" --path "49'/88'" --path "84'/88'"  --path "0'/45342'" --path "20698'/3053'/12648430'"
+APP_LOAD_FLAGS=--appFlags 0xa50
+else ifeq ($(COIN),qtum_stake_testnet)
+# Qtum Stake Testnet
+DEFINES   += BIP44_COIN_TYPE=0 BIP44_COIN_TYPE_2=0 COIN_P2PKH_VERSION=120 COIN_P2SH_VERSION=110 COIN_FAMILY=3 COIN_COINID=\"Qtum\" COIN_COINID_HEADER=\"QTUM\" COIN_COLOR_HDR=0x2E9AD0 COIN_COLOR_DB=0x97CDE8 COIN_COINID_NAME=\"QTUM\" COIN_COINID_SHORT=\"QTUM\" COIN_NATIVE_SEGWIT_PREFIX=\"tq\" COIN_KIND=COIN_KIND_QTUM COIN_FLAGS=FLAG_SEGWIT_CHANGE_SUPPORT MAX_OUTPUT_TO_CHECK=500 HAVE_QTUM_SUPPORT USE_NO_OVERWINTER
+APPNAME ="Qtum Stake Test"
+DEFINES_LIB=# we're not using the lib :)
+APP_LOAD_PARAMS += --path $(APP_PATH) --path "44'/1'" --path "45'/1'" --path "48'/1'" --path "49'/1'" --path "84'/1'" --path "0'/45342'" --path "20698'/3053'/12648430'" 
+APP_LOAD_FLAGS=--appFlags 0xa50
 else ifeq ($(COIN),zcoin)
 DEFINES   += BIP44_COIN_TYPE=136 BIP44_COIN_TYPE_2=136 COIN_P2PKH_VERSION=82 COIN_P2SH_VERSION=7 COIN_FAMILY=1 COIN_COINID=\"Zcoin\" COIN_COINID_HEADER=\"ZCOIN\" COIN_COLOR_HDR=0x3EAD54 COIN_COLOR_DB=0xA3DCAE COIN_COINID_NAME=\"Zcoin\" COIN_COINID_SHORT=\"ZCOIN\" COIN_KIND=COIN_KIND_ZCOIN
 APPNAME ="Zcoin"
@@ -193,7 +209,7 @@ APPNAME ="Ravencoin"
 APP_LOAD_PARAMS += --path $(APP_PATH)
 else
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
-$(error Unsupported COIN - use bitcoin_testnet, bitcoin, bitcoin_cash, bitcoin_gold, litecoin, dogecoin, dash, zcash, horizen, komodo, stratis, peercoin, pivx, viacoin, vertcoin, stealth, digibyte, qtum, bitcoin_private, zcoin, gamecredits, zclassic, xsn, nix, lbry, resistance, ravencoin)
+$(error Unsupported COIN - use bitcoin_testnet, bitcoin, bitcoin_cash, bitcoin_gold, litecoin, dogecoin, dash, zcash, horizen, komodo, stratis, peercoin, pivx, viacoin, vertcoin, stealth, digibyte, qtum, qtum_stake, qtum_stake_testnet, bitcoin_private, zcoin, gamecredits, zclassic, xsn, nix, lbry, resistance, ravencoin)
 endif
 endif
 
@@ -302,10 +318,10 @@ SDK_SOURCE_PATH  += lib_blewbxx lib_blewbxx_impl
 endif
 
 load: all
-	python -m ledgerblue.loadApp $(APP_LOAD_PARAMS)
+	python3 -m ledgerblue.loadApp $(APP_LOAD_PARAMS)
 
 delete:
-	python -m ledgerblue.deleteApp $(COMMON_DELETE_PARAMS)
+	python3 -m ledgerblue.deleteApp $(COMMON_DELETE_PARAMS)
 
 # import generic rules from the sdk
 include $(BOLOS_SDK)/Makefile.rules
@@ -318,11 +334,11 @@ dep/%.d: %.c Makefile
 ifeq ($(TARGET_NAME),TARGET_NANOX)
 
 listvariants:
-	@echo VARIANTS COIN bitcoin_testnet bitcoin bitcoin_cash bitcoin_gold litecoin dogecoin dash zcash horizen komodo stratis peercoin pivx viacoin vertcoin stealth digibyte qtum bitcoin_private zcoin gamecredits zclassic xsn nix lbry ravencoin
+	@echo VARIANTS COIN bitcoin_testnet bitcoin bitcoin_cash bitcoin_gold litecoin dogecoin dash zcash horizen komodo stratis peercoin pivx viacoin vertcoin stealth digibyte qtum qtum_stake qtum_stake_testnet bitcoin_private zcoin gamecredits zclassic xsn nix lbry ravencoin
 
 else
 
 listvariants:
-	@echo VARIANTS COIN bitcoin_testnet bitcoin bitcoin_cash bitcoin_gold litecoin dogecoin dash zcash horizen komodo stratis peercoin pivx viacoin vertcoin stealth digibyte qtum bitcoin_private zcoin gamecredits zclassic xsn nix lbry ravencoin resistance
+	@echo VARIANTS COIN bitcoin_testnet bitcoin bitcoin_cash bitcoin_gold litecoin dogecoin dash zcash horizen komodo stratis peercoin pivx viacoin vertcoin stealth digibyte qtum qtum_stake qtum_stake_testnet bitcoin_private zcoin gamecredits zclassic xsn nix lbry ravencoin resistance
 
 endif
