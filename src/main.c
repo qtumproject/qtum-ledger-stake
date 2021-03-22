@@ -846,37 +846,31 @@ uint8_t check_fee_swap() {
     return 1;
 }
 
-uint8_t prepare_fees() {
+uint8_t prepare_reward() {
     if (btchip_context_D.transactionContext.relaxed) {
-        os_memmove(vars.tmp.feesAmount, "UNKNOWN", 7);
-        vars.tmp.feesAmount[7] = '\0';
+        PRINTF("Error : Reward not found");
+        goto error;
     } else {
         unsigned char fees[8];
         unsigned short textSize;
-        unsigned char borrow;
+        unsigned char reward;
 
-        borrow = transaction_amount_sub_be(
+        reward = transaction_amount_sub_be(
                 fees, btchip_context_D.transactionContext.transactionAmount,
                 btchip_context_D.totalOutputAmount);
-        if (borrow && G_coin_config->kind == COIN_KIND_KOMODO) {
-            os_memmove(vars.tmp.feesAmount, "REWARD", 6);
-            vars.tmp.feesAmount[6] = '\0';
+        if (!reward) {
+            PRINTF("Error : Reward not found");
+            goto error;
         }
-        else {
-            if (borrow) {
-                PRINTF("Error : Fees not consistent");
-                goto error;
-            }
-            os_memmove(vars.tmp.feesAmount, G_coin_config->name_short,
-                       strlen(G_coin_config->name_short));
-            vars.tmp.feesAmount[strlen(G_coin_config->name_short)] = ' ';
-            btchip_context_D.tmp =
-                (unsigned char *)(vars.tmp.feesAmount +
-                              strlen(G_coin_config->name_short) + 1);
-            textSize = btchip_convert_hex_amount_to_displayable(fees);
-            vars.tmp.feesAmount[textSize + strlen(G_coin_config->name_short) + 1] =
-                '\0';
-        }
+        os_memmove(vars.tmp.feesAmount, G_coin_config->name_short,
+                   strlen(G_coin_config->name_short));
+        vars.tmp.feesAmount[strlen(G_coin_config->name_short)] = ' ';
+        btchip_context_D.tmp =
+            (unsigned char *)(vars.tmp.feesAmount +
+                          strlen(G_coin_config->name_short) + 1);
+        textSize = btchip_convert_hex_amount_to_displayable(fees);
+        vars.tmp.feesAmount[textSize + strlen(G_coin_config->name_short) + 1] =
+            '\0';
     }
     return 1;
 error:
@@ -1226,10 +1220,10 @@ unsigned int btchip_bagl_confirm_single_output() {
 
 unsigned int btchip_bagl_finalize_tx() {
     if (btchip_context_D.called_from_swap) {
-        return check_fee_swap();
+        return 0;
     }
 
-    if (!prepare_fees()) {
+    if (!prepare_reward()) {
         return 0;
     }
 
