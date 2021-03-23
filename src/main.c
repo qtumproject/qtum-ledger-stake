@@ -852,7 +852,6 @@ uint8_t prepare_reward() {
         goto error;
     } else {
         unsigned char fees[8];
-        unsigned short textSize;
         unsigned char reward;
 
         reward = transaction_amount_sub_be(
@@ -862,15 +861,6 @@ uint8_t prepare_reward() {
             PRINTF("Error : Reward not found");
             goto error;
         }
-        os_memmove(vars.tmp.feesAmount, G_coin_config->name_short,
-                   strlen(G_coin_config->name_short));
-        vars.tmp.feesAmount[strlen(G_coin_config->name_short)] = ' ';
-        btchip_context_D.tmp =
-            (unsigned char *)(vars.tmp.feesAmount +
-                          strlen(G_coin_config->name_short) + 1);
-        textSize = btchip_convert_hex_amount_to_displayable(fees);
-        vars.tmp.feesAmount[textSize + strlen(G_coin_config->name_short) + 1] =
-            '\0';
     }
     return 1;
 error:
@@ -1227,16 +1217,10 @@ unsigned int btchip_bagl_finalize_tx() {
         return 0;
     }
 
-    #ifdef HAVE_QTUM_SUPPORT
-    if(btchip_context_D.signOpSender) {
-        ux_flow_init(0, ux_finalize_sender_flow, NULL);
+    if (!btchip_bagl_user_action(1)) {
+        // redraw ui
+        ui_idle();
     }
-    else {
-        ux_flow_init(0, ux_finalize_flow, NULL);
-    }
-    #else
-    ux_flow_init(0, ux_finalize_flow, NULL);
-    #endif
 
     return 1;
 }
