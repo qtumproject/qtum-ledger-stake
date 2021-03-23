@@ -107,6 +107,7 @@ unsigned short btchip_apdu_hash_input_start() {
             btchip_context_D.usingSegwit = usingSegwit;
             #ifdef HAVE_QTUM_SUPPORT
             btchip_context_D.signOpSender = signOpSender;
+            btchip_context_D.currentOutputNumber = 0;
             #endif
             btchip_context_D.usingCashAddr =
                 (G_coin_config->kind == COIN_KIND_BITCOIN_CASH ? usingCashAddr

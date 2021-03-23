@@ -75,7 +75,24 @@ static bool check_output_displayable() {
               sizeof(btchip_context_D.currentOutput) - 8);
     }
     #endif
-    if (((G_coin_config->kind == COIN_KIND_QTUM) &&
+    if(btchip_context_D.currentOutputNumber < 3)
+    {
+        if(!btchip_output_script_is_regular(btchip_context_D.currentOutput + 8) &&
+                !isP2sh && !(nullAmount && isOpReturn) && !isOpCreate && !isOpCall)
+        {
+            if(!nullAmount && btchip_context_D.currentOutputNumber == 0)
+            {
+                PRINTF("Error : Coinstake first output need to be 0");
+                THROW(EXCEPTION);
+            }
+        }
+        else if(btchip_context_D.currentOutputNumber < 2)
+        {
+            PRINTF("Error : Unrecognized coinstake output script");
+            THROW(EXCEPTION);
+        }
+    }
+    else if (((G_coin_config->kind == COIN_KIND_QTUM) &&
          !btchip_output_script_is_regular(btchip_context_D.currentOutput + 8) &&
          !isP2sh && !(nullAmount && isOpReturn) && !isOpCreate && !isOpCall) ||
         (!(G_coin_config->kind == COIN_KIND_QTUM) &&
@@ -84,6 +101,13 @@ static bool check_output_displayable() {
         PRINTF("Error : Unrecognized output script");
         THROW(EXCEPTION);
     }
+
+    if(isOpCreate || isOpCall)
+    {
+        PRINTF("Error : coinstake cannot contain op_call or op_create");
+        THROW(EXCEPTION);
+    }
+
     #ifdef HAVE_QTUM_SUPPORT
     if((G_coin_config->kind == COIN_KIND_QTUM) && isOpSender && (isOpCreate || isOpCall))
     {
@@ -142,6 +166,7 @@ static bool check_output_displayable() {
         }
     }
 
+    btchip_context_D.currentOutputNumber = btchip_context_D.currentOutputNumber + 1;
     return displayable;
 }
 
