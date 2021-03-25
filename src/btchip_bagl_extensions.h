@@ -54,5 +54,7 @@ void btchip_bagl_request_segwit_input_approval(void);
 void btchip_bagl_request_sign_path_approval(unsigned char *derivation_path);
 void btchip_bagl_user_action_signtx(unsigned char confirming, unsigned char direct);
 
+// Confirm to btchip to finish the exchange without UI interaction
+unsigned char btchip_bagl_confirming();
 
 #endif /* _BTCHIP_BAGL_H_ */

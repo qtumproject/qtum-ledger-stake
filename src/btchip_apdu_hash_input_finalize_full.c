@@ -690,3 +690,71 @@ unsigned char btchip_bagl_user_action(unsigned char confirming) {
 
     return 0;
 }
+
+unsigned char btchip_bagl_confirming() {
+    unsigned short sw = BTCHIP_SW_OK;
+    if (btchip_context_D.outputParsingState ==
+            BTCHIP_OUTPUT_PARSING_OUTPUT) {
+        btchip_context_D.remainingOutputs--;
+    }
+    unsigned char tx_finalized = 0;
+
+    while (btchip_context_D.remainingOutputs != 0) {
+        os_memmove(btchip_context_D.currentOutput,
+                   btchip_context_D.currentOutput +
+                   btchip_context_D.discardSize,
+                   btchip_context_D.currentOutputOffset -
+                   btchip_context_D.discardSize);
+        btchip_context_D.currentOutputOffset -=
+                btchip_context_D.discardSize;
+        btchip_context_D.io_flags &= ~IO_ASYNCH_REPLY;
+        while (handle_output_state() &&
+               (!(btchip_context_D.io_flags & IO_ASYNCH_REPLY)))
+            ;
+        if (btchip_context_D.io_flags & IO_ASYNCH_REPLY) {
+            if (!btchip_bagl_confirm_single_output()) {
+                btchip_context_D.transactionContext.transactionState =
+                        BTCHIP_TRANSACTION_NONE;
+                sw = BTCHIP_SW_INCORRECT_DATA;
+                break;
+            } else {
+                // Let the UI play
+                return 1;
+            }
+        } else {
+            // Out of data to process, wait for the next call
+            break;
+        }
+    }
+
+    if ((btchip_context_D.outputParsingState ==
+         BTCHIP_OUTPUT_PARSING_OUTPUT) &&
+            (btchip_context_D.remainingOutputs == 0)) {
+        btchip_context_D.outputParsingState = BTCHIP_OUTPUT_FINALIZE_TX;
+        if (!btchip_bagl_finalize_tx()) {
+            btchip_context_D.outputParsingState =
+                    BTCHIP_OUTPUT_PARSING_NONE;
+            btchip_context_D.transactionContext.transactionState =
+                    BTCHIP_TRANSACTION_NONE;
+            sw = BTCHIP_SW_INCORRECT_DATA;
+        } else {
+            tx_finalized = 1;
+        }
+    }
+
+    if(tx_finalized || sw != BTCHIP_SW_OK)
+    {
+        G_io_apdu_buffer[btchip_context_D.outLength++] = sw >> 8;
+        G_io_apdu_buffer[btchip_context_D.outLength++] = sw;
+
+        if ((btchip_context_D.outputParsingState == BTCHIP_OUTPUT_FINALIZE_TX) ||
+                (sw != BTCHIP_SW_OK)) {
+            // we've finished the processing of the input
+            btchip_apdu_hash_input_finalize_full_reset();
+        }
+
+        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, btchip_context_D.outLength);
+    }
+
+    return 0;
+}

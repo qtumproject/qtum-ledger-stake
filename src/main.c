@@ -1194,7 +1194,7 @@ unsigned int btchip_silent_confirm_single_output() {
 
 unsigned int btchip_bagl_confirm_single_output() {
     if (btchip_context_D.called_from_swap) {
-        return btchip_silent_confirm_single_output();
+        return 0;
     }
     if (!prepare_single_output()) {
         return 0;
@@ -1204,7 +1204,7 @@ unsigned int btchip_bagl_confirm_single_output() {
              btchip_context_D.totalOutputs - btchip_context_D.remainingOutputs +
                  1);
 
-    ux_flow_init(0, ux_confirm_single_flow, NULL);
+    btchip_bagl_confirming();
     return 1;
 }
 
@@ -1217,9 +1217,20 @@ unsigned int btchip_bagl_finalize_tx() {
         return 0;
     }
 
-    if (!btchip_bagl_user_action(1)) {
-        // redraw ui
-        ui_idle();
+    if (btchip_context_D.outputParsingState == BTCHIP_OUTPUT_FINALIZE_TX) {
+        btchip_context_D.transactionContext.firstSigned = 0;
+
+        if (btchip_context_D.usingSegwit &&
+                !btchip_context_D.segwitParsedOnce) {
+            // This input cannot be signed when using segwit - just restart.
+            btchip_context_D.segwitParsedOnce = 1;
+            PRINTF("Segwit parsed once\n");
+            btchip_context_D.transactionContext.transactionState =
+                    BTCHIP_TRANSACTION_NONE;
+        } else {
+            btchip_context_D.transactionContext.transactionState =
+                    BTCHIP_TRANSACTION_SIGN_READY;
+        }
     }
 
     return 1;
