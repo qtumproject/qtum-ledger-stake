@@ -1241,7 +1241,7 @@ void btchip_bagl_confirm_message_signature() {
         return;
     }
 
-    ux_flow_init(0, ux_sign_flow, NULL);
+    btchip_bagl_user_action_message_signing(1);
 }
 
 uint8_t set_key_path_to_display(unsigned char* keyPath) {
@@ -1253,7 +1253,7 @@ void btchip_bagl_display_public_key(uint8_t is_derivation_path_unusual) {
     // append a white space at the end of the address to avoid glitch on nano S
     strcat((char *)G_io_apdu_buffer + 200, " ");
 
-    ux_flow_init(0, is_derivation_path_unusual?ux_display_public_with_warning_flow:ux_display_public_flow, NULL);
+    btchip_bagl_user_action_display(1);
 }
 
 void btchip_bagl_display_token()
