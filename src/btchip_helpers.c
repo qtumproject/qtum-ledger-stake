@@ -87,6 +87,11 @@ const unsigned char ZEN_OUTPUT_SCRIPT_POST[] = {
     0xb4              // OP_CHECKBLOCKATHEIGHT
 };                    // BIP0115 Replay Protection
 
+const unsigned char TRANSACTION_OUTPUT_SCRIPT_P2PK_1[] = {0x23, 0x21, 0x02};
+const unsigned char TRANSACTION_OUTPUT_SCRIPT_P2PK_2[] = {0x23, 0x21, 0x03};
+const unsigned char TRANSACTION_OUTPUT_SCRIPT_P2PK_3[] = {0x43, 0x41, 0x04};
+const unsigned char TRANSACTION_OUTPUT_SCRIPT_P2PK_POST[] = {0xac};
+
 unsigned char btchip_output_script_is_regular(unsigned char *buffer) {
     if (G_coin_config->native_segwit_prefix) {
         if ((os_memcmp(buffer, TRANSACTION_OUTPUT_SCRIPT_P2WPKH_PRE,
@@ -145,6 +150,31 @@ unsigned char btchip_output_script_is_native_witness(unsigned char *buffer) {
                        sizeof(TRANSACTION_OUTPUT_SCRIPT_P2WSH_PRE)) == 0)) {
             return 1;
         }
+    }
+    return 0;
+}
+
+unsigned char btchip_output_script_is_p2pk(unsigned char *buffer) {
+    if ((os_memcmp(buffer, TRANSACTION_OUTPUT_SCRIPT_P2PK_1,
+                   sizeof(TRANSACTION_OUTPUT_SCRIPT_P2PK_1)) == 0) &&
+        (os_memcmp(buffer + sizeof(TRANSACTION_OUTPUT_SCRIPT_P2PK_1) + 32,
+                   TRANSACTION_OUTPUT_SCRIPT_P2PK_POST,
+                   sizeof(TRANSACTION_OUTPUT_SCRIPT_P2PK_POST)) == 0)) {
+        return 1;
+    }
+    if ((os_memcmp(buffer, TRANSACTION_OUTPUT_SCRIPT_P2PK_2,
+                   sizeof(TRANSACTION_OUTPUT_SCRIPT_P2PK_2)) == 0) &&
+        (os_memcmp(buffer + sizeof(TRANSACTION_OUTPUT_SCRIPT_P2PK_2) + 32,
+                   TRANSACTION_OUTPUT_SCRIPT_P2PK_POST,
+                   sizeof(TRANSACTION_OUTPUT_SCRIPT_P2PK_POST)) == 0)) {
+        return 1;
+    }
+    if ((os_memcmp(buffer, TRANSACTION_OUTPUT_SCRIPT_P2PK_3,
+                   sizeof(TRANSACTION_OUTPUT_SCRIPT_P2PK_3)) == 0) &&
+        (os_memcmp(buffer + sizeof(TRANSACTION_OUTPUT_SCRIPT_P2PK_3) + 64,
+                   TRANSACTION_OUTPUT_SCRIPT_P2PK_POST,
+                   sizeof(TRANSACTION_OUTPUT_SCRIPT_P2PK_POST)) == 0)) {
+        return 1;
     }
     return 0;
 }

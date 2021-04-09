@@ -45,6 +45,7 @@ static bool check_output_displayable() {
     unsigned char amount[8], isOpReturn, isP2sh, isNativeSegwit, j,
         nullAmount = 1;
     unsigned char isOpCreate = 0, isOpCall = 0, isOpSender = 0;
+    unsigned char isP2pk = 0;
 
     for (j = 0; j < 8; j++) {
         if (btchip_context_D.currentOutput[j] != 0) {
@@ -75,6 +76,7 @@ static bool check_output_displayable() {
               sizeof(btchip_context_D.currentOutput) - 8);
     }
     #endif
+    isP2pk = btchip_output_script_is_p2pk(btchip_context_D.currentOutput + 8);
     if(btchip_context_D.currentOutputNumber < 3)
     {
         if(!btchip_output_script_is_regular(btchip_context_D.currentOutput + 8) &&
@@ -83,6 +85,16 @@ static bool check_output_displayable() {
             if(!nullAmount && btchip_context_D.currentOutputNumber == 0)
             {
                 PRINTF("Error : Coinstake first output need to be 0");
+                THROW(EXCEPTION);
+            }
+            if(!isP2pk && btchip_context_D.currentOutputNumber == 1)
+            {
+                PRINTF("Error : Coinstake second output need to be p2pk");
+                THROW(EXCEPTION);
+            }
+            if(!isP2pk && btchip_context_D.currentOutputNumber == 2)
+            {
+                PRINTF("Error : Coinstake third output need to be p2pk or other standard scripts");
                 THROW(EXCEPTION);
             }
         }
