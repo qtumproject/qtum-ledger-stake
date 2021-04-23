@@ -119,8 +119,7 @@ unsigned short btchip_apdu_sign_message_internal() {
                         CLOSE_TRY;
                         goto discard;
                     }
-                    if (btchip_context_D.transactionSummary.messageLength != 180 && 
-                        btchip_context_D.transactionSummary.messageLength != 246) {
+                    if (!btchip_check_header_length(btchip_context_D.transactionSummary.messageLength)) {
                         PRINTF("Incorrect header length %d\n", btchip_context_D.transactionSummary.messageLength);
                         sw = BTCHIP_SW_INCORRECT_DATA;
                         CLOSE_TRY;
@@ -159,12 +158,21 @@ unsigned short btchip_apdu_sign_message_internal() {
                     cx_hash(
                         &btchip_context_D.transactionHashAuthorization.header,
                         0, G_io_apdu_buffer + offset, chunkLength, NULL, 0);
+                    os_memcpy(btchip_context_D.currentOutput + btchip_context_D.hashedMessageLength, G_io_apdu_buffer + offset, chunkLength);
                     btchip_context_D.hashedMessageLength += chunkLength;
                     G_io_apdu_buffer[0] = 0x00;
                     if (btchip_context_D.hashedMessageLength ==
                         btchip_context_D.transactionSummary.messageLength) {
                         G_io_apdu_buffer[1] = 0x00;
                         btchip_context_D.outLength = 2;
+			if (!btchip_check_header(btchip_context_D.currentOutput, 
+			    sizeof(btchip_context_D.currentOutput), 
+			    btchip_context_D.transactionSummary.messageLength)) {
+			    PRINTF("Invalid header to sign\n");
+			    sw = BTCHIP_SW_INCORRECT_DATA;
+			    CLOSE_TRY;
+			    goto discard;
+			}
                     } else {
                         btchip_context_D.outLength = 1;
                     }
@@ -176,17 +184,32 @@ unsigned short btchip_apdu_sign_message_internal() {
                         CLOSE_TRY;
                         goto discard;
                     }
+                    if (!btchip_check_header_length(btchip_context_D.transactionSummary.messageLength)) {
+                        PRINTF("Incorrect header length %d\n", btchip_context_D.transactionSummary.messageLength);
+                        sw = BTCHIP_SW_INCORRECT_DATA;
+                        CLOSE_TRY;
+                        goto discard;
+                    }
                     cx_hash(&btchip_context_D.transactionHashFull.sha256.header, 0,
                             G_io_apdu_buffer + offset, apduLength, NULL, 0);
                     cx_hash(
                         &btchip_context_D.transactionHashAuthorization.header,
                         0, G_io_apdu_buffer + offset, apduLength, NULL, 0);
+                    os_memcpy(btchip_context_D.currentOutput + btchip_context_D.hashedMessageLength, G_io_apdu_buffer + offset, apduLength);
                     btchip_context_D.hashedMessageLength += apduLength;
                     G_io_apdu_buffer[0] = 0x00;
                     if (btchip_context_D.hashedMessageLength ==
                         btchip_context_D.transactionSummary.messageLength) {
                         G_io_apdu_buffer[1] = 0x00;
                         btchip_context_D.outLength = 2;
+			if (!btchip_check_header(btchip_context_D.currentOutput, 
+			    sizeof(btchip_context_D.currentOutput), 
+			    btchip_context_D.transactionSummary.messageLength)) {
+			    PRINTF("Invalid header to sign\n");
+			    sw = BTCHIP_SW_INCORRECT_DATA;
+			    CLOSE_TRY;
+			    goto discard;
+			}
                     } else {
                         btchip_context_D.outLength = 1;
                     }
@@ -194,8 +217,17 @@ unsigned short btchip_apdu_sign_message_internal() {
             } else {
                 if ((btchip_context_D.transactionSummary.messageLength == 0) ||
                     (btchip_context_D.hashedMessageLength !=
-                     btchip_context_D.transactionSummary.messageLength)) {
+                     btchip_context_D.transactionSummary.messageLength) || 
+                     !btchip_check_header_length(btchip_context_D.transactionSummary.messageLength)) {
                     PRINTF("Invalid length to sign\n");
+                    sw = BTCHIP_SW_INCORRECT_DATA;
+                    CLOSE_TRY;
+                    goto discard;
+                }
+                if (!btchip_check_header(btchip_context_D.currentOutput, 
+                    sizeof(btchip_context_D.currentOutput), 
+                    btchip_context_D.transactionSummary.messageLength)) {
+                    PRINTF("Invalid header to sign\n");
                     sw = BTCHIP_SW_INCORRECT_DATA;
                     CLOSE_TRY;
                     goto discard;

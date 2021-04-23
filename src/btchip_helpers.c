@@ -353,6 +353,30 @@ unsigned char btchip_get_sender_sig(unsigned char *buffer,
     return btchip_find_script_data(buffer, size, 3, 1, sig, sigSize) && *sig != 0 && *sigSize > 0;
 }
 #endif
+unsigned char btchip_check_header_length(unsigned short length)
+{
+    return length == 180 || length == 246;
+}
+unsigned char btchip_check_header(unsigned char *buffer, size_t bufferSize, unsigned short headerSize)
+{
+    // Consensus checks
+    if(!btchip_check_header_length(headerSize) || bufferSize < headerSize)
+        return 0;
+    if(headerSize == 246 && buffer[180] != 65)
+        return 0;
+    uint32_t nTime = btchip_read_u32(buffer + 68, 0, 0);
+    uint32_t timestampMask = 3;
+    if((nTime & timestampMask) != 0)
+        return 0;
+
+    // Additional checks
+    uint32_t nNonce = btchip_read_u32(buffer + 76, 0, 0);
+    uint32_t pastTime = 1619176540; //April 2021
+    if(nTime < pastTime || nNonce != 0)
+        return 0;
+
+    return 1;
+}
 
 unsigned char btchip_rng_u8_modulo(unsigned char modulo) {
     unsigned int rng_max = 256 % modulo;

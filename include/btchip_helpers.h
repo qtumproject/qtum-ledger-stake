@@ -50,6 +50,8 @@ unsigned char btchip_get_script_sender_address(unsigned char *buffer,
 unsigned char btchip_get_sender_sig(unsigned char *buffer,
                                                 size_t size, unsigned char **sig, unsigned int *sigSize);
 #endif
+unsigned char btchip_check_header_length(unsigned short length);
+unsigned char btchip_check_header(unsigned char *buffer, size_t bufferSize, unsigned short headerSize);
 
 void btchip_sleep16(unsigned short delay);
 void btchip_sleep32(unsigned long int delayEach, unsigned long int delayRepeat);
