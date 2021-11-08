@@ -844,36 +844,20 @@ uint8_t check_fee_swap() {
     return 1;
 }
 
-uint8_t prepare_fees() {
+uint8_t prepare_reward() {
     if (btchip_context_D.transactionContext.relaxed) {
-        os_memmove(vars.tmp.feesAmount, "UNKNOWN", 7);
-        vars.tmp.feesAmount[7] = '\0';
+        PRINTF("Error : Reward not found");
+        goto error;
     } else {
         unsigned char fees[8];
-        unsigned short textSize;
-        unsigned char borrow;
+        unsigned char reward;
 
-        borrow = transaction_amount_sub_be(
+        reward = transaction_amount_sub_be(
                 fees, btchip_context_D.transactionContext.transactionAmount,
                 btchip_context_D.totalOutputAmount);
-        if (borrow && G_coin_config->kind == COIN_KIND_KOMODO) {
-            os_memmove(vars.tmp.feesAmount, "REWARD", 6);
-            vars.tmp.feesAmount[6] = '\0';
-        }
-        else {
-            if (borrow) {
-                PRINTF("Error : Fees not consistent");
-                goto error;
-            }
-            os_memmove(vars.tmp.feesAmount, G_coin_config->name_short,
-                       strlen(G_coin_config->name_short));
-            vars.tmp.feesAmount[strlen(G_coin_config->name_short)] = ' ';
-            btchip_context_D.tmp =
-                (unsigned char *)(vars.tmp.feesAmount +
-                              strlen(G_coin_config->name_short) + 1);
-            textSize = btchip_convert_hex_amount_to_displayable(fees);
-            vars.tmp.feesAmount[textSize + strlen(G_coin_config->name_short) + 1] =
-                '\0';
+        if (!reward) {
+            PRINTF("Error : Reward not found");
+            goto error;
         }
     }
     return 1;
@@ -1206,7 +1190,7 @@ unsigned int btchip_silent_confirm_single_output() {
 
 unsigned int btchip_bagl_confirm_single_output() {
     if (btchip_context_D.called_from_swap) {
-        return btchip_silent_confirm_single_output();
+        return 0;
     }
     if (!prepare_single_output()) {
         return 0;
@@ -1216,29 +1200,34 @@ unsigned int btchip_bagl_confirm_single_output() {
              btchip_context_D.totalOutputs - btchip_context_D.remainingOutputs +
                  1);
 
-    ux_flow_init(0, ux_confirm_single_flow, NULL);
+    btchip_bagl_confirming();
     return 1;
 }
 
 unsigned int btchip_bagl_finalize_tx() {
     if (btchip_context_D.called_from_swap) {
-        return check_fee_swap();
-    }
-
-    if (!prepare_fees()) {
         return 0;
     }
 
-    #ifdef HAVE_QTUM_SUPPORT
-    if(btchip_context_D.signOpSender) {
-        ux_flow_init(0, ux_finalize_sender_flow, NULL);
+    if (!prepare_reward()) {
+        return 0;
     }
-    else {
-        ux_flow_init(0, ux_finalize_flow, NULL);
+
+    if (btchip_context_D.outputParsingState == BTCHIP_OUTPUT_FINALIZE_TX) {
+        btchip_context_D.transactionContext.firstSigned = 0;
+
+        if (btchip_context_D.usingSegwit &&
+                !btchip_context_D.segwitParsedOnce) {
+            // This input cannot be signed when using segwit - just restart.
+            btchip_context_D.segwitParsedOnce = 1;
+            PRINTF("Segwit parsed once\n");
+            btchip_context_D.transactionContext.transactionState =
+                    BTCHIP_TRANSACTION_NONE;
+        } else {
+            btchip_context_D.transactionContext.transactionState =
+                    BTCHIP_TRANSACTION_SIGN_READY;
+        }
     }
-    #else
-    ux_flow_init(0, ux_finalize_flow, NULL);
-    #endif
 
     return 1;
 }
@@ -1248,7 +1237,7 @@ void btchip_bagl_confirm_message_signature() {
         return;
     }
 
-    ux_flow_init(0, ux_sign_flow, NULL);
+    btchip_bagl_user_action_message_signing(1);
 }
 
 uint8_t set_key_path_to_display(unsigned char* keyPath) {
@@ -1260,7 +1249,7 @@ void btchip_bagl_display_public_key(uint8_t is_derivation_path_unusual) {
     // append a white space at the end of the address to avoid glitch on nano S
     strcat((char *)G_io_apdu_buffer + 200, " ");
 
-    ux_flow_init(0, is_derivation_path_unusual?ux_display_public_with_warning_flow:ux_display_public_flow, NULL);
+    btchip_bagl_user_action_display(1);
 }
 
 void btchip_bagl_display_token()

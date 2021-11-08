@@ -194,6 +194,7 @@ struct btchip_context_s {
     unsigned char segwitWarningSeen;
     #ifdef HAVE_QTUM_SUPPORT
     unsigned char signOpSender;
+    unsigned int currentOutputNumber;
     #endif
 
     /* /Segregated Witness changes */
